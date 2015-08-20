@@ -9,14 +9,15 @@
 #import "BIDTaskListController.h"
 
 @interface BIDTaskListController ()
-@property (strong, nonatomic) NSArray *tasks;
+@property (strong, nonatomic) NSMutableArray *tasks;
+@property (copy, nonatomic) NSDictionary *editedSelection;
 @end
 
 @implementation BIDTaskListController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.tasks = @[@"Walk the dog",
+    self.tasks = [@[@"Walk the dog",
                    @"URGENT: Buy milk",
                    @"Clean hidden lair",
                    @"Invent miniature dolphins",
@@ -24,7 +25,7 @@
                    @"Get revenge on do-gooder heroes",
                    @"URGENT: Fold laundry",
                    @"Hold entire world hostage",
-                   @"Manicure"];
+                   @"Manicure"] mutableCopy];
     // Uncomment the following line to preserve selection between presentations.
     // self.clearsSelectionOnViewWillAppear = NO;
     
@@ -35,6 +36,31 @@
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
+}
+
+- (void) setEditedSelection:(NSDictionary *) dict {
+    if (![dict isEqual:self.editedSelection]) {
+        _editedSelection = dict;
+        NSIndexPath *indexPath = dict[@"indexPath"];
+        id newValue = dict[@"object"];
+        [self.tasks replaceObjectAtIndex:indexPath.row withObject:newValue];
+        [self.tableView reloadRowsAtIndexPaths:[NSArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+    }
+}
+
+- (void) prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
+{
+//    NSLog(@"prepare for segue.");
+    UIViewController *destination = segue.destinationViewController;
+    if ([destination respondsToSelector:@selector(setDelegate:)]) {
+        [destination setValue:self forKey:@"delegate"];
+    }
+    if ([destination respondsToSelector:@selector(setSelection:)]) {
+        NSIndexPath *indexPath = [self.tableView indexPathForCell:sender];
+        id object = self.tasks[indexPath.row];
+        NSDictionary *selection = @{@"indexPath" : indexPath, @"object" : object};
+        [destination setValue:selection forKey:@"selection"];
+    }
 }
 
 #pragma mark - Table view data source
@@ -52,7 +78,7 @@
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     NSString *identifier = nil;
     NSString *task = [self.tasks objectAtIndex:indexPath.row];
-    NSRange urgentRange = [task rangeOfString:@"URGENT"];
+    NSRange urgentRange = [task rangeOfString:@"URGENT" options: NSCaseInsensitiveSearch];
     if (urgentRange.location == NSNotFound) {
         identifier = @"plainCell";
     } else {
@@ -67,10 +93,23 @@
     return cell;
 }
 
+- (void)viewDidAppear:(BOOL)animated
+{
+    [super viewDidAppear:animated];
+    NSLog(@"%@, %@", self.navigationController.navigationItem.leftBarButtonItems, self.navigationController.navigationItem.backBarButtonItem);
+}
+
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+
+}
+
 -(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
 //    NSLog(@"table did selected...");
-    [tableView deselectRowAtIndexPath:indexPath animated:NO];
+//    [tableView deselectRowAtIndexPath:indexPath animated:NO];
+//    [self.navigationItem.leftBarButtonItem];
 }
 
 /*
